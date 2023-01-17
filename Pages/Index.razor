@@ -1,0 +1,274 @@
+﻿@page "/"
+@using System.Timers
+
+<style>
+    .container {
+        width: 400px;
+    }
+
+    button {
+        width: 100px;
+        height: 100px;
+    }
+
+    .my-btn {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container">
+    <!-- Range for players to choose the time limit for completing the game -->
+    <div class="row">
+        <h4>Time Limit: @timeLimitDisplay s</h4>
+    </div>
+    <div class="row mb-3">
+        <!-- Set the minimum time limit to 15 seconds, maximum to 120 seconds, and 15 seconds each step -->
+        <input type="range" step="15" min="15" max="120" value="30" @onchange="UpdateTimeLimit" />
+    </div>
+
+    <div class="row mb-3">
+        @for (var cardNumber = 0; cardNumber < shuffledCards.Count; cardNumber++)
+        {
+            var emoji = shuffledCards[cardNumber];
+            var index = cardNumber;
+
+            <!-- Use the emojis from shuffleCards for the ButtonClick event
+                and get the strings from hiddenCards to only show a pair of cards that are clicked -->
+            <div class="col-3">
+                <button @onclick="() => ButtonClick(emoji, index)"
+                        type="button" class="btn btn-outline-dark my-btn">
+                    @hiddenCards[cardNumber]
+                </button>
+            </div>
+        }
+    </div>
+
+    <div class="row">
+        <h3 class="text-primary">Matches Found: @matchesFound</h3>
+    </div>
+
+    <div class="row">
+        <h3>Time Left: @timeDisplay</h3>
+    </div>
+
+    <div class="row mb-4">
+        <h3>Complete Time: @(completeTime < 0 ? "--" : completeTime.ToString("0.0s"))</h3>
+    </div>
+
+    <!-- Keep track of the shortest time to complete a game until players quit the program -->
+    <div class="row text-secondary">
+        <!-- I set the initial value of shortestTime to -1, so the page will only show "N/A" when there isn't a shortest time yet -->
+        <h3>Shortest Complete Time: @(shortestTime < 0 ? "--" : shortestTime.ToString("0.0s"))</h3>
+    </div>
+</div>
+
+@code {
+    // List of the emojis that will be used for the matching game
+    List<string> emojiCards = new List<string>(){
+        "🐶", "🐶",
+        "🐱", "🐱",
+        "🍔", "🍔",
+        "🚗", "🚗",
+        "🐮", "🐮",
+        "😀", "😀",
+        "🐷", "🐷",
+        "🍉", "🍉",
+    };
+
+    // An empty list to store a randomly ordered emojiCards for each round of the game
+    List<string> shuffledCards = new List<string>();
+
+    /* 
+        List of "?" to show on the page when the cards are not clicked.
+        Only change the "?" to an emoji accordiing to the index of shuffledCards 
+        when a pair of cards are clicked and hide them again when the emojis don't match.
+    */
+    List<string> hiddenCards = new List<string>(){
+        "?", "?",
+        "?", "?",
+        "?", "?",
+        "?", "?",
+        "?", "?",
+        "?", "?",
+        "?", "?",
+        "?", "?",
+    };
+
+    // Variable to keep track of the number of mathches found for each round of the game
+    int matchesFound = 0;
+
+    // Variables for the count down timer
+    Timer timer;
+    int tenthsOfSecondsElapsed;
+    int startTime = 300; // Set the default start time to 30 seconds, use this to calcualate shortest time when the game is completed
+    string timeDisplay = "30.0s"; // Set initial timeDisplay according to the defualt start time so it will show when the game is initialized
+
+    // Variables to keep track of the shortest time to complete a game
+    double completeTime = -1;
+    double shortestTime = -1; // Should be startime - time left when a game is completed
+
+    // Set up the game when the program is initialized
+    protected override void OnInitialized()
+    {
+        timer = new Timer(100);
+        timer.Elapsed += Timer_Tick;
+
+        SetUpGame();
+    }
+
+    private void SetUpGame()
+    {
+        tenthsOfSecondsElapsed = startTime; // Set the starting point of the timer according to the start time
+        matchesFound = 0;
+
+        Random random = new Random();
+        shuffledCards = emojiCards
+            .OrderBy(item => random.Next())
+            .ToList();
+
+        // Reset the hiddenCards List so every string is "?" at the beginning
+        for (int c = 0; c < hiddenCards.Count; c++)
+        {
+            hiddenCards[c] = "?";
+        }
+    }
+
+    // Variables for the button click event
+    string lastCardFound = string.Empty;
+    int lastIndex = -1;
+    bool matchFailed = true; // false when clicking on a pair of card, true when a pair of cards isn't a match
+
+    /// <summary>
+    /// This method reveal a pair of cards to check if they are matched
+    /// and hide them if they are not when clicking on a new pair of cards
+    /// </summary>
+    /// <param name="emoji">The hidden emoji of the card that is clicked get from shuffledCards</param>
+    /// <param name="cardIndex">The index of the card that is clicked</param>
+    private void ButtonClick(string emoji, int cardIndex)
+    {
+        // when a clicked pair of cards don't match, hide those cards again
+        if (matchFailed)
+        {
+            HideUnmatchedCards();
+        }
+
+        // turn the "?" to an emoji according to the index of shuffleCards to reveal the card
+        hiddenCards[cardIndex] = emoji;
+
+        if (lastCardFound == string.Empty)
+        {
+            matchFailed = false;
+            lastCardFound = emoji;
+            lastIndex = cardIndex;
+            timer.Start();
+        }
+        else if ((lastCardFound == emoji) && (lastIndex != cardIndex))
+        {
+            matchFailed = false;
+
+            shuffledCards = shuffledCards
+                .Select(a => a.Replace(lastCardFound, string.Empty))
+                .ToList();
+
+            hiddenCards = hiddenCards
+                .Select(a => a.Replace(lastCardFound, string.Empty))
+                .ToList();
+
+            lastCardFound = string.Empty;
+
+            matchesFound++;
+
+            // The game is completed when all matches are found, call SetUpGame to reset the game
+            if (matchesFound == (shuffledCards.Count / 2))
+            {
+                timer.Stop();
+                timeDisplay += " - Play Again?";
+
+                /*
+                    If shortestTime < 0 means it's the first round so it must be the shortest time,
+                    otherwise update the shortest time while it's shoter than the record.
+                */
+                completeTime = (startTime - tenthsOfSecondsElapsed) / 10f;
+                if (shortestTime < 0 || (completeTime < shortestTime))
+                {
+                    shortestTime = completeTime;
+                }
+
+                SetUpGame();
+            }
+        }
+        else
+        {
+            matchFailed = true; // set matchFailed to true while two cards don't match
+            lastCardFound = string.Empty;
+        }
+    }
+
+    // string that shows the time limit according to the range selected by the players
+    string timeLimitDisplay = "30";
+
+    /// <summary>
+    /// This method update the text that shows the selected time limit on the game page.
+    /// </summary>
+    /// <param name="e">the range slider for selecting the time limit</param>
+    private void UpdateTimeLimit(ChangeEventArgs e)
+    {
+        timeLimitDisplay = e.Value.ToString();
+
+        // Update startTime accordingly, but turn it into integer so it can be used to calculate the time to complete a game
+        startTime = int.Parse(e.Value.ToString()) * 10;
+        tenthsOfSecondsElapsed = startTime; // also update the starting point of the count down timer
+
+        // Reset the game if players uses the silder to change the time limit when they are playing the game
+        if (timer.Enabled) // timer.Enabled is true when the timer is started
+        {
+            timer.Stop();
+            timeDisplay = $"Time Limit Changed ({startTime / 10}s) - Play Again?";
+            lastCardFound = string.Empty;
+            SetUpGame();
+        }
+        else
+        {
+            // If the player update the time limit before the game starts, just update the text
+            timeDisplay = (startTime / 10f).ToString("0.0s");
+        }
+    }
+
+    //Adjust the code from the textbook to setup a count down timer
+    private void Timer_Tick(Object source, ElapsedEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            //Instaed of ++, use -- to decrease the timer
+            tenthsOfSecondsElapsed--;
+            timeDisplay = (tenthsOfSecondsElapsed / 10f).ToString("0.0s");
+
+            //Stop the timer and reset the game when the time is less than 0
+            if(tenthsOfSecondsElapsed < 0)
+            {
+                timer.Stop();
+                timeDisplay = "0.0s - Play Again?";
+                lastCardFound = string.Empty;
+                SetUpGame();
+            }
+
+            StateHasChanged();
+        });
+    }
+
+
+    /// <summary>
+    /// This method hides the cards that are not matched yet.
+    /// </summary>
+    private void HideUnmatchedCards()
+    {
+        for (int c = 0; c < hiddenCards.Count; c++)
+        {
+            if(hiddenCards[c] != "")
+            {
+                hiddenCards[c] = "?";
+            }
+        }
+    }
+}
