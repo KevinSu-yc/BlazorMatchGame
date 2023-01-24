@@ -159,18 +159,18 @@
         // If there's no last card found, it should be the first click or the selected cards don't match
         if (lastCardFound == string.Empty)
         {
-            // If the time is ticking, it means the selected cards don't match. Track the clicked emoji and its index
-            if (timer.Enabled) // timer.Enabled is true when the timer is started
-            {
-                matchFailed = false;
-                lastCardFound = emoji;
-                lastIndex = cardIndex;
-            }
-            else // If the time isn't started yet, it means this is the first click. Start the time and reset the number of found match
+            // If the time isn't started yet, it means it's the first click. Start the timer and reset the number of matched found
+            if (!timer.Enabled) // timer.Enabled is true when the timer is started
             {
                 timer.Start();
                 matchesFound = 0;
             }
+
+            // track the clickede emoji and it's index.
+            matchFailed = false; // matchFailed is false since it's just the first click of a pair of cards
+            lastCardFound = emoji;
+            lastIndex = cardIndex;
+
         } // If the current clicked emoji and it's index are same the the last click, it means the two cards are matched
         else if ((lastCardFound == emoji) && (lastIndex != cardIndex))
         {
