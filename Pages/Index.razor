@@ -22,6 +22,7 @@
     <div class="row">
         <h4>Time Limit: @timeLimitDisplay s</h4>
     </div>
+
     <div class="row mb-3">
         <!-- Set the minimum time limit to 15 seconds, maximum to 120 seconds, and 15 seconds each step -->
         <input type="range" step="15" min="15" max="120" value="30" @onchange="UpdateTimeLimit" />
@@ -44,7 +45,6 @@
         }
     </div>
 
-    <!-- TODO: Keep the number when the game ends (the number now resets when the time is up or the game is completed) -->
     <div class="row">
         <h3 class="text-primary">Matches Found: @matchesFound</h3>
     </div>
@@ -80,9 +80,9 @@
     // An empty list to store a randomly ordered emojiCards for each round of the game
     List<string> shuffledCards = new List<string>();
 
-    /* 
+    /*
         List of "?" to show on the page when the cards are not clicked.
-        Only change the "?" to an emoji accordiing to the index of shuffledCards 
+        Only change the "?" to an emoji accordiing to the index of shuffledCards
         when a pair of cards are clicked and hide them again when the emojis don't match.
     */
     List<string> hiddenCards = new List<string>(){
@@ -121,7 +121,6 @@
     private void SetUpGame()
     {
         tenthsOfSecondsElapsed = startTime; // Set the starting point of the timer according to the start time
-        matchesFound = 0;
 
         Random random = new Random();
         shuffledCards = emojiCards
@@ -148,22 +147,31 @@
     /// <param name="cardIndex">The index of the card that is clicked</param>
     private void ButtonClick(string emoji, int cardIndex)
     {
-        // when a clicked pair of cards don't match, hide those cards again
+        // When a clicked pair of cards don't match, hide those cards again
         if (matchFailed)
         {
             HideUnmatchedCards();
         }
 
-        // turn the "?" to an emoji according to the index of shuffleCards to reveal the card
+        // Turn the "?" to an emoji according to the index of shuffleCards to reveal the card
         hiddenCards[cardIndex] = emoji;
 
+        // If there's no last card found, it should be the first click or the selected cards don't match
         if (lastCardFound == string.Empty)
         {
-            matchFailed = false;
-            lastCardFound = emoji;
-            lastIndex = cardIndex;
-            timer.Start();
-        }
+            // If the time is ticking, it means the selected cards don't match. Track the clicked emoji and its index
+            if (timer.Enabled) // timer.Enabled is true when the timer is started
+            {
+                matchFailed = false;
+                lastCardFound = emoji;
+                lastIndex = cardIndex;
+            }
+            else // If the time isn't started yet, it means this is the first click. Start the time and reset the number of found match
+            {
+                timer.Start();
+                matchesFound = 0;
+            }
+        } // If the current clicked emoji and it's index are same the the last click, it means the two cards are matched
         else if ((lastCardFound == emoji) && (lastIndex != cardIndex))
         {
             matchFailed = false;
@@ -198,7 +206,7 @@
 
                 SetUpGame();
             }
-        }
+        } // If it's not the above conditions, it means the clicked cards don't match
         else
         {
             matchFailed = true; // set matchFailed to true while two cards don't match
@@ -246,7 +254,7 @@
             timeDisplay = (tenthsOfSecondsElapsed / 10f).ToString("0.0s");
 
             //Stop the timer and reset the game when the time is less than 0
-            if(tenthsOfSecondsElapsed < 0)
+            if (tenthsOfSecondsElapsed < 0)
             {
                 timer.Stop();
                 timeDisplay = "0.0s - Play Again?";
@@ -266,7 +274,7 @@
     {
         for (int c = 0; c < hiddenCards.Count; c++)
         {
-            if(hiddenCards[c] != "")
+            if (hiddenCards[c] != "")
             {
                 hiddenCards[c] = "?";
             }
