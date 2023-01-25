@@ -133,6 +133,9 @@
         SetUpGame();
     }
 
+    /// <summary>
+    /// This method reset the timer and the cards for the game to start
+    /// </summary>
     private void SetUpGame()
     {
         tenthsOfSecondsElapsed = startTime; // Set the starting point of the timer according to the start time
@@ -265,7 +268,11 @@
         }
     }
 
-    //Adjust the code from the textbook to setup a count down timer
+    /// <summary>
+    /// This mothod create a count down timer by decreasing the starting time and update the displaying time accordingly
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="e"></param>
     private void Timer_Tick(Object source, ElapsedEventArgs e)
     {
         InvokeAsync(() =>
