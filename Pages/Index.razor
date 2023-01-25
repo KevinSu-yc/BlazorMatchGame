@@ -7,25 +7,30 @@
     }
 
     button {
-        width: 100px;
-        height: 100px;
+        width: 75px;
+        height: 90px;
     }
 
     .my-btn {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: bold;
     }
 </style>
 
 <div class="container">
-    <!-- Range for players to choose the time limit for completing the game -->
-    <div class="row">
-        <h4>Time Limit: @timeLimitDisplay s</h4>
+    <div class="row mb-3">
+        <h4 class="font-weight-bold">Cards Matching Game</h4>
+        <h5>Select time limit and click a card to start. Memorize and match all the cards to win! </h5>
     </div>
 
-    <div class="row mb-3">
+    <!-- Range for players to choose the time limit for completing the game -->
+    <div class="row mb-2 align-items-center">
+        <p class="mb-1">Select Time Limit</p>
         <!-- Set the minimum time limit to 15 seconds, maximum to 120 seconds, and 15 seconds each step -->
-        <input type="range" step="15" min="15" max="120" value="30" @onchange="UpdateTimeLimit" />
+        <div class="col-6">
+            <input type="range" step="15" min="15" max="120" value="30" @onchange="UpdateTimeLimit" class="form-control-range" />
+        </div>
+        @timeLimitDisplay s
     </div>
 
     <div class="row mb-3">
@@ -38,29 +43,36 @@
                 and get the strings from hiddenCards to only show a pair of cards that are clicked -->
             <div class="col-3">
                 <button @onclick="() => ButtonClick(emoji, index)"
-                        type="button" class="btn btn-outline-dark my-btn">
+                        type="button" class="btn btn-outline-dark my-btn my-1">
                     @hiddenCards[cardNumber]
                 </button>
             </div>
         }
     </div>
 
-    <div class="row">
-        <h3 class="text-primary">Matches Found: @matchesFound</h3>
+    <div class="row justify-content-between">
+
+        <h5 class="@(tenthsOfSecondsElapsed < 100 ? "text-danger" : "")">Time Left: @timeDisplay</h5>
+        <h5 class="text-primary">Matches Found: @matchesFound</h5>
     </div>
 
-    <div class="row">
-        <h3>Time Left: @timeDisplay</h3>
-    </div>
+    <!-- The complete time only apppears when players win a game since completeTime will be reset to -1 in other conditions -->
+    @if (completeTime > 0)
+    {
+        <div class="row">
+            <h5 class="text-success">Complete Time: @(completeTime.ToString("0.0s"))</h5>
+        </div>
+    }
 
-    <div class="row mb-4">
-        <h3>Complete Time: @(completeTime < 0 ? "--" : completeTime.ToString("0.0s"))</h3>
+    <!-- Show message about different situation -->
+    <div class="row mb-3">
+        <h5>@gameMessage</h5>
     </div>
 
     <!-- Keep track of the shortest time to complete a game until players quit the program -->
     <div class="row text-secondary">
         <!-- I set the initial value of shortestTime to -1, so the page will only show "--" when there isn't a shortest time yet -->
-        <h3>Shortest Complete Time: @(shortestTime < 0 ? "--" : shortestTime.ToString("0.0s"))</h3>
+        <h5>Shortest Complete Time: @(shortestTime < 0 ? "--" : shortestTime.ToString("0.0s"))</h5>
     </div>
 </div>
 
@@ -108,6 +120,9 @@
     // Variables to keep track of the shortest time to complete a game
     double completeTime = -1;
     double shortestTime = -1; // Should be startime - time left when a game is completed
+
+    // message that inform players about different situation of the game
+    string gameMessage = "";
 
     // Set up the game when the program is initialized
     protected override void OnInitialized()
@@ -164,6 +179,10 @@
             {
                 timer.Start();
                 matchesFound = 0;
+
+                // Also reset complete time and game message so they won't show during a game
+                completeTime = -1;
+                gameMessage = "";
             }
 
             // track the clickede emoji and it's index.
@@ -192,7 +211,7 @@
             if (matchesFound == (shuffledCards.Count / 2))
             {
                 timer.Stop();
-                timeDisplay += " - Play Again?";
+                gameMessage = "You win! Click a card to Play Again."; // Update message to inform player the situation
 
                 /*
                     If shortestTime < 0 means it's the first round so it must be the shortest time,
@@ -201,6 +220,7 @@
                 completeTime = (startTime - tenthsOfSecondsElapsed) / 10f;
                 if (shortestTime < 0 || (completeTime < shortestTime))
                 {
+                    gameMessage = "New record! Click a card to Play Again."; // Update message to inform player the situation
                     shortestTime = completeTime;
                 }
 
@@ -229,11 +249,11 @@
         startTime = int.Parse(e.Value.ToString()) * 10;
         tenthsOfSecondsElapsed = startTime; // also update the starting point of the count down timer
 
-        // Reset the game if players uses the silder to change the time limit when they are playing the game
+        // Stop the game if players uses the silder to change the time limit when they are playing the game
         if (timer.Enabled) // timer.Enabled is true when the timer is started
         {
             timer.Stop();
-            timeDisplay = $"Time Limit Changed ({startTime / 10}s) - Play Again?";
+            gameMessage = $"Time Limit Changed ({startTime / 10}s) - Click a card to Play Again."; // Update message to inform player the situation
             lastCardFound = string.Empty;
             SetUpGame();
         }
@@ -241,6 +261,7 @@
         {
             // If the player update the time limit before the game starts, just update the text
             timeDisplay = (startTime / 10f).ToString("0.0s");
+            gameMessage = "";
         }
     }
 
@@ -257,7 +278,9 @@
             if (tenthsOfSecondsElapsed < 0)
             {
                 timer.Stop();
-                timeDisplay = "0.0s - Play Again?";
+                timeDisplay = "0.0s";
+                completeTime = -1;
+                gameMessage = "Time's Up - Click a card to play again";
                 lastCardFound = string.Empty;
                 SetUpGame();
             }
