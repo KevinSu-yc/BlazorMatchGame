@@ -21,9 +21,3 @@ In addition, I updated the layout of the interface. I added a brief intro about 
 4. **Calculate the complete time for each round and keep track of the shortest record (Requirement A)**
     - I'd like this modification to be graded for **requirement A**. I added a lot of variables for this modification and learned about how the timer works to calculate the values I wanted.
     - Added one variable called `startTime` to keep the time limit for each round of a game, one called `completeTime` to keep the time to complete a game, and one called `shortestTime` to keep track of the shortest time to complete a game. `startTime` will update while the player uses the slider for the time limit. `completeTime` is calculate by `startTime` - the time remaining when a game is completed. Replace the value `shortestTime` with `completeTime` when it's the first time a player completes a game or `completeTime` is less than `shortestTime`.
-
-### Update to do for week 2:
-
-- Keep the number of matches found when a game ends. (The number of matches found now resets to 0 when a game ends.)
-- Learn more about bootstrap to style the page.
-- Update some comments and explain more about if else conditions.
